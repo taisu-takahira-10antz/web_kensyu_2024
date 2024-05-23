@@ -8,6 +8,15 @@ table {
     height: 800px;
 }
 
+img.titleimage {
+    display: block;
+    margin: 0 auto;
+    /* width: 900px; */
+    width: max-content;
+    height: 300px;
+    position: relative;
+    object-fit: cover;
+}
 *,
 *:before,
 *:after {

@@ -10,11 +10,17 @@
 
 <body onload="Init()">
   <div id="container">
-    <canvas id="cvs"></canvas>
-    <gameover hidden>GAME OVER</gameover>
+    <div id="main">
+      <canvas id="maincvs"></canvas>
+    </div>
+    <div id="sub">
+      <canvas id="holdcvs"></canvas>
+      <canvas id="nextcvs"></canvas>
+    </div>
     <test>デバッグ用テキスト</test>
-    <script src="JS/Game.js"></script>
   </div>
+
+  <script src="JS/Game.js"></script>
 </body>
 
 </html>

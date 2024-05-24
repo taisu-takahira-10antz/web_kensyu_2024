@@ -10,16 +10,26 @@
 
 <body onload="Init()">
   <div id="container">
-    <div id="main">
-      <canvas id="maincvs"></canvas>
-    </div>
-    <div id="sub">
-      <canvas id="holdcvs"></canvas>
-      <canvas id="nextcvs"></canvas>
+    <canvas id="scorecvs"></canvas>
+    <div id="game">
+      <div id="main">
+        <canvas id="maincvs"></canvas>
+      </div>
+      <div id="sub">
+        <canvas id="holdcvs"></canvas>
+        <canvas id="nextcvs"></canvas>
+      </div>
     </div>
     <test>デバッグ用テキスト</test>
   </div>
-
+  <div id=operation>
+    <p>【操作方法】</p>
+    <p>左右移動： ←→、ADキー</p>
+    <p>下移動： ↓、Sキー</p>
+    <p>急速落下： ↑、Wキー</p>
+    <p>回転： スペースキー、NMキー</p>
+    <p>ホールド： シフトキー</p>
+  </div>
   <script src="JS/Game.js"></script>
 </body>
 

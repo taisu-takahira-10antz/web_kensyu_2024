@@ -17,6 +17,31 @@ img.titleimage {
     position: relative;
     object-fit: cover;
 }
+#info {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+}
+
+#playinfo {
+    font-size: 200%;
+    width: 300px;
+    height: 50px;
+    text-align: center;
+    line-height: 25px;
+    position: relative;
+    margin: 0 0 1% 0;
+}
+
+#gitinfo {
+    font-size: 200%;
+    width: 300px;
+    height: 50px;
+    text-align: center;
+    line-height: 25px;
+    position: relative;
+}
 *,
 *:before,
 *:after {
@@ -119,4 +144,63 @@ a.btn-flat:hover:before {
 a.btn-flat:hover:after {
     -webkit-transform: rotate(45deg) translateX(0) translateY(50%);
     transform: rotate(45deg) translateX(0) translateY(50%);
+}
+a.info {
+    overflow: hidden;
+
+    padding: 1.5rem 6rem;
+
+    color: #fff;
+    border-radius: 0;
+    background: #000;
+    position: relative;
+}
+
+a.info span {
+    position: relative;
+    z-index: 1;
+}
+
+a.info:before {
+    position: absolute;
+    top: 0;
+    left: calc(-100% + 10px);
+
+    width: 100%;
+    height: 100%;
+
+    content: '';
+    -webkit-transition: all .5s ease-in-out;
+    transition: all .5s ease-in-out;
+    -webkit-transform: translateX(0) translateY(0);
+    transform: translateX(0) translateY(0);
+
+    background: #094;
+}
+
+a.info:after {
+    position: absolute;
+    top: 0;
+    right: calc(-100% + 10px);
+
+    width: 100%;
+    height: 100%;
+
+    content: '';
+    -webkit-transition: all .5s ease-in-out;
+    transition: all .5s ease-in-out;
+    -webkit-transform: translateX(0) translateY(0);
+    transform: translateX(0) translateY(0);
+
+    background: #094;
+}
+
+a.info:hover:before {
+    -webkit-transform: translateX(50%) translateY(0);
+    transform: translateX(50%) translateY(0);
+}
+
+a.info:hover:after {
+    -webkit-transform: translateX(-50%) translateY(0);
+    transform: translateX(-50%) translateY(0);
 }

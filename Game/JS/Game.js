@@ -21,27 +21,36 @@ const holdCol = 5;
 const maincvs = document.getElementById('maincvs');
 const nextcvs = document.getElementById('nextcvs');
 const holdcvs = document.getElementById('holdcvs');
+const scorecvs = document.getElementById('scorecvs');
 //2dコンテキストを取得
 const mainctx = maincvs.getContext('2d');
 const nextctx = nextcvs.getContext('2d');
 const holdctx = holdcvs.getContext('2d');
+const scorectx = scorecvs.getContext('2d');
 //キャンバスサイズ
 const canvasW = (blockSize * boardCol);
 const canvasH = (blockSize * boardRow);
-//ネクストのキャンバスサイズ
 const nextCanvasW = (nextBlockSize * nextCol);
 const nextCanvasH = (nextBlockSize * nextRow);
-//ホールドのキャンバスサイズ
 const holdCanvasW = (holdBlockSize * holdCol);
 const holdCanvasH = (holdBlockSize * holdRow);
+const scoreCanvasW = 900;
+const scoreCanvasH = 100;
 maincvs.width = canvasW;
 maincvs.height = canvasH;
 nextcvs.width = nextCanvasW;
 nextcvs.height = nextCanvasH;
 holdcvs.width = holdCanvasW;
 holdcvs.height = holdCanvasH;
+scorecvs.width = scoreCanvasW;
+scorecvs.height = scoreCanvasH;
 //コンテナの設定
 const container = document.getElementById('container');
+
+//スコアの桁数
+const scoredigit = 6;
+//スコアの最大値
+const scoremax = (10 ** scoredigit - 1);
 
 
 //BGM
@@ -154,7 +163,7 @@ const tetTypesSub = [
 
 //テトリミノの色
 const tetColors = [
-    '#fd312300',
+    '#fd312300', //落下予測用
     '#f6fe85',
     '#07e0e7',
     '#7ced77',
@@ -188,9 +197,12 @@ const holdBoard = [];
 
 //タイマーID
 let timerId = NaN;
-
 //ゲームオーバーフラグ
 let isGameOver = false;
+
+// スコア
+let score = 0;
+let scoreText = "000000";
 
 //================
 //初期化処理
@@ -222,6 +234,7 @@ const Init = () => {
     InitStartPos(); //初期位置に戻す
     DrawNextTets(); //ネクスト描画
     DrawHoldTets(); //ホールド描画
+    DrowScore(); //スコア描画
 
     InitAudio(); //オーディオ初期化
 
@@ -323,6 +336,8 @@ const Draw = () => {
         }
     }
 
+    DrowTetDorpDownPos(); //テト予測描画
+
     //テトリミノの描画
     for (let y = 0; y < tet.length; y++) {
         for (let x = 0; x < tet.length; x++) {
@@ -331,19 +346,19 @@ const Draw = () => {
             }
         }
     }
-    DrowTetDorpDownPos(); //テト予測描画
 
     //ゲームオーバー
     if (isGameOver) {
         StopBGM(); //BGM停止
         PlaySE(ENUM_SE_TYPE.GAMEOVER); //SE再生
         //ゲームオーバー表示
-        //$('#gameover').show();
         mainctx.font = '45px Arial';
         mainctx.fillStyle = '#a41900';
         mainctx.textAlign = 'center';
         mainctx.fillText('GAME OVER', maincvs.width / 2, maincvs.height / 2);
     }
+
+    DrowScore(); //スコア描画
 };
 
 //==================
@@ -395,16 +410,28 @@ const CanMove = (dx, dy, nowTet = tet) => {
 //=====
 //回転
 //=====
-const CreateRotateTet = () => {
+const CreateRotateTet = (isRight = true) => {
     //新しいテトを作る
     let newTet = [];
-    for (let y = 0; y < tet.length; y++) {
-        newTet[y] = [];
-        for (let x = 0; x < tet.length; x++) {
-            //時計回りに90度回転させる
-            newTet[y][x] = tet[tet.length - 1 - x][y];
+    if (isRight) {
+        for (let y = 0; y < tet.length; y++) {
+            newTet[y] = [];
+            for (let x = 0; x < tet.length; x++) {
+                //時計回りに90度回転させる
+                newTet[y][x] = tet[tet.length - 1 - x][y];
+            }
         }
     }
+    else {
+        for (let y = 0; y < tet.length; y++) {
+            newTet[y] = [];
+            for (let x = 0; x < tet.length; x++) {
+                //反時計回りに90度回転させる
+                newTet[y][x] = tet[x][tet.length - 1 - y];
+            }
+        }
+    }
+
     return newTet;
 };
 
@@ -421,10 +448,11 @@ document.onkeydown = (e) => {
                 PlaySE(ENUM_SE_TYPE.MOVE);
             }
             break;
-        case "ArrowUp": //上
+        case "ArrowUp": //即時落下
         case "w":
             while (CanMove(0, 1)) {
                 offsetY++;
+                AddScore(10); //スコア追加
             }
             PlaySE(ENUM_SE_TYPE.DROPDOWN);
             DropTet();
@@ -441,13 +469,23 @@ document.onkeydown = (e) => {
             if (CanMove(0, 1)) {
                 offsetY++;
                 PlaySE(ENUM_SE_TYPE.MOVE);
+                AddScore(1); //スコア追加
                 TimerReset(); //タイマーリセット
             }
             break;
-        case " ": //space
-            let newTet = CreateRotateTet();
-            if (CanMove(0, 0, newTet)) {
-                tet = newTet;
+        case " ": //右回転
+        case "m":
+            let newTetR = CreateRotateTet(true);
+            if (CanMove(0, 0, newTetR)) {
+                tet = newTetR;
+                PlaySE(ENUM_SE_TYPE.MOVE);
+            }
+            break;
+        case "n"://左回転
+            let newTetL = CreateRotateTet(false);
+            if (CanMove(0, 0, newTetL)) {
+                tet = newTetL;
+                PlaySE(ENUM_SE_TYPE.MOVE);
             }
             break;
         case "Shift":
@@ -481,6 +519,8 @@ const FixTet = () => {
 //揃ったライン消去
 //==============
 const ClearLine = () => {
+    let clearLinenum = 0; //ライン消去数
+
     //ボードの行を上から調査
     for (let y = 0; y < boardRow; y++) {
         //一列揃ってると仮定する(フラグ)
@@ -495,7 +535,7 @@ const ClearLine = () => {
         }
         if (isLineOK) {//ここに来るということはその列が揃っていたことを意味する
 
-            PlaySE(ENUM_SE_TYPE.LINECLEAR); // SEならす
+            clearLinenum++;
             //その行から上に向かってfor文を動かす
             for (let ny = y; ny > 0; ny--) {
                 for (let nx = 0; nx < boardCol; nx++) {
@@ -504,6 +544,11 @@ const ClearLine = () => {
                 }
             }
         }
+    }
+
+    if (clearLinenum != 0) {
+        PlaySE(ENUM_SE_TYPE.LINECLEAR); // SEならす
+        AddScore(5 * (10 ** clearLinenum)); //スコア追加
     }
 };
 
@@ -694,6 +739,8 @@ const TimerReset = () => {
 //落下予測表示
 //====================
 const DrowTetDorpDownPos = () => {
+
+    //どこまで落下できるか調べる
     let move_y = 1;
     while (CanMove(0, move_y)) {
         move_y++;
@@ -701,8 +748,9 @@ const DrowTetDorpDownPos = () => {
     if (move_y <= 1) {
         return;
     }
-
     move_y--;
+
+    //落下予測描画
     for (let y = 0; y < tet.length; y++) {
         for (let x = 0; x < tet.length; x++) {
             if (tet[y][x]) {
@@ -710,4 +758,41 @@ const DrowTetDorpDownPos = () => {
             }
         }
     }
+}
+
+//====================
+//スコア加算
+//====================
+const AddScore = (addval) => {
+    score += addval;
+    score = score.clamp(0, scoremax);
+}
+//クランプ
+Number.prototype.clamp = function (_min, _max) {
+    return Math.min(Math.max(this, _min), _max);
+};
+
+
+//====================
+//スコア表示
+//====================
+const DrowScore = () => {
+    scorectx.fillStyle = '#000'; //塗りに黒を設定
+    scorectx.fillRect(0, 0, scoreCanvasW, scoreCanvasH); //キャンバスを塗りつぶす
+
+    //scorectx.font = '45px Arial';
+    scorectx.font = '45px serif';
+    scorectx.fillStyle = '#fffc30';
+    scorectx.textAlign = 'start';
+
+    //スコアをテキストに変換
+    let scoretexttemp = score.toString();
+    for (let i = scoredigit - scoretexttemp.length; i > 0; i--) {
+        scoretexttemp = "0" + scoretexttemp;
+    }
+    scoreText = scoretexttemp;
+
+    //描画
+    scorectx.fillText("SCORE :", 200, scorecvs.height / 2 + 20);
+    scorectx.fillText(scoreText, scorecvs.width / 2, scorecvs.height / 2 + 20);
 }

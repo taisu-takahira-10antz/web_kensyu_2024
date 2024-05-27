@@ -1,5 +1,5 @@
 //落下サイクル(小さい方が速い)
-const speed = 500;
+const speed = 700;
 //ブロック1マスの大きさ
 const blockSize = 30;
 //ネクストのブロック1マスの大きさ
@@ -54,8 +54,7 @@ const scoremax = (10 ** scoredigit - 1);
 
 
 //BGM
-const BGM = new Audio('Resource/BGM/tetris_game.mp3');
-let isPlayBGM = false;
+const BGM_GAME = new Audio('Resource/BGM/tetris_game.mp3');
 
 //SE
 const SE_DORPDOWN = new Audio('Resource/SE/tet_drop_down.mp3'); //即時落下音
@@ -63,6 +62,7 @@ const SE_FIT = new Audio('Resource/SE/tet_fit.mp3'); //固定音
 const SE_MOVE = new Audio('Resource/SE/tet_move.mp3'); //移動音
 const SE_LINECLEAR = new Audio('Resource/SE/tet_line_clear.mp3'); //列消去音声
 const SE_GAMEOVER = new Audio('Resource/SE/gameover.mp3'); //ゲームオーバー音
+const SE_GAMECLEAR = new Audio('Resource/BGM/tetris_gameclear.mp3'); //ゲームクリア音
 
 const ENUM_SE_TYPE = {
     DROPDOWN: 'DROPDOWN',
@@ -70,10 +70,13 @@ const ENUM_SE_TYPE = {
     MOVE: 'MOVE',
     LINECLEAR: 'LINECLEAR',
     GAMEOVER: 'GAMEOVER',
+    GAMECLEAR: 'GAMECLEAR',
 };
 
-//テトリミノの全種類数
+//テトリミノの全種類数(標準の１パック分)
 const tet_boxnum = 7;
+//テトリミノの新追加分
+const tet_Addnum = 3;
 //テトリミノの種類
 const tetTypes = [
     [], //0を空としておく
@@ -111,6 +114,23 @@ const tetTypes = [
         [0, 0, 1],
         [1, 1, 1],
         [0, 0, 0],
+    ],
+    [
+        [1, 1, 0, 1],
+        [0, 1, 1, 1],
+        [1, 1, 1, 0],
+        [1, 0, 1, 1],
+    ],
+    [
+        [0, 1, 1, 1],
+        [0, 1, 1, 1],
+        [0, 0, 0, 1],
+        [0, 0, 0, 1],
+    ],
+    [
+        [0, 0, 0],
+        [1, 1, 1],
+        [1, 0, 1],
     ],
 ];
 
@@ -159,6 +179,24 @@ const tetTypesSub = [
         [0, 1, 1, 1],
         [0, 0, 0, 0],
     ],
+    [
+        [1, 1, 0, 1],
+        [0, 1, 1, 1],
+        [1, 1, 1, 0],
+        [1, 0, 1, 1],
+    ],
+    [
+        [0, 1, 1, 1],
+        [0, 1, 1, 1],
+        [0, 0, 0, 1],
+        [0, 0, 0, 1],
+    ],
+    [
+        [0, 0, 0, 0],
+        [0, 1, 1, 1],
+        [0, 1, 0, 1],
+        [0, 0, 0, 0],
+    ],
 ];
 
 //テトリミノの色
@@ -171,14 +209,17 @@ const tetColors = [
     '#f94246',
     '#9693fe',
     '#f2b907',
+    '#f828ff',
+    '#c70000',
+    '#0037ff',
 ];
 
 //今後落ちてくる予定のテト
 var tet_list = new Array();
 //テトリミノのindex
-let tet_idx;
+let tet_idx = 0;
 //選択されたテト
-let tet;
+let tet = [];
 //ホールドされたテトindex
 let holdtet_idx = 0;
 //ホールドされたテト
@@ -197,8 +238,12 @@ const holdBoard = [];
 
 //タイマーID
 let timerId = NaN;
+//ゲームスタートフラグ
+let isGameStart = false;
 //ゲームオーバーフラグ
 let isGameOver = false;
+//ゲームクリアフラグ
+let isGameClear = false;
 
 // スコア
 let score = 0;
@@ -228,29 +273,48 @@ const Init = () => {
         }
     }
 
+
     AddTet(); //テト抽選
-    TimerReset(); //タイマーセット
-    SetNextTet(); //次のテトセット
-    InitStartPos(); //初期位置に戻す
     DrawNextTets(); //ネクスト描画
     DrawHoldTets(); //ホールド描画
     DrowScore(); //スコア描画
-
     InitAudio(); //オーディオ初期化
 
-    Draw();
+    Draw(); //描画
 };
+//==============
+// ゲーム開始処理
+//==============
+const GameStart = () => {
+    isGameStart = true; //ゲームスタートフラグON
+    $('a').hide(); //ゲームスタートボタン非表示
+    $('b').hide(); //ゲームスタート背景非表示
+
+    SetNextTet(); //次のテトセット
+    InitStartPos(); //初期位置に戻す
+    TimerReset(); //タイマーセット
+    Draw(); //描画
+    PlayBGM(); //BGM再生
+}
+
+// ボタン押された時のイベント
+$(function () {
+    $('a').on('click', () => {
+        if (isGameStart) return;
+        GameStart(); //ゲームスタート処理
+    });
+});
 
 //==============
 // オーディオ初期化
 //==============
 const InitAudio = () => {
     //BGM
-    BGM.load();
-    BGM.currentTime = 1.5;
-    BGM.playbackRate = 1;
-    BGM.volume = 0.6;
-    BGM.loop = true;
+    BGM_GAME.load();
+    BGM_GAME.currentTime = 1.5;
+    BGM_GAME.playbackRate = 1;
+    BGM_GAME.volume = 0.6;
+    BGM_GAME.loop = true;
 
     //SE
     SE_DORPDOWN.load();
@@ -264,20 +328,23 @@ const InitAudio = () => {
     SE_LINECLEAR.loop = false;
     SE_GAMEOVER.load();
     SE_GAMEOVER.loop = false;
+    SE_GAMECLEAR.load();
+    SE_GAMECLEAR.volume = 0.2;
+    SE_GAMECLEAR.loop = true;
 }
 
 //==============
 //BGM再生
 //==============
 const PlayBGM = () => {
-    BGM.pause();
-    BGM.play();
+    BGM_GAME.pause();
+    BGM_GAME.play();
 }
 //==============
 //BGM停止
 //==============
 const StopBGM = () => {
-    BGM.pause();
+    BGM_GAME.pause();
 }
 
 //==============
@@ -309,6 +376,11 @@ const PlaySE = (enum_se_type) => {
             SE_GAMEOVER.pause();
             SE_GAMEOVER.currentTime = 0;
             SE_GAMEOVER.play();
+            break;
+        case ENUM_SE_TYPE.GAMECLEAR:
+            SE_GAMECLEAR.pause();
+            SE_GAMECLEAR.currentTime = 0;
+            SE_GAMECLEAR.play();
             break;
         default:
             break;
@@ -356,6 +428,17 @@ const Draw = () => {
         mainctx.fillStyle = '#a41900';
         mainctx.textAlign = 'center';
         mainctx.fillText('GAME OVER', maincvs.width / 2, maincvs.height / 2);
+    }
+
+    //ゲームクリア
+    if (isGameClear) {
+        StopBGM(); //BGM停止
+        PlaySE(ENUM_SE_TYPE.GAMECLEAR); //SE再生
+        //ゲームクリア表示
+        mainctx.font = '45px Arial';
+        mainctx.fillStyle = '#ffea00';
+        mainctx.textAlign = 'center';
+        mainctx.fillText('GAME CLEAR', maincvs.width / 2, maincvs.height / 2);
     }
 
     DrowScore(); //スコア描画
@@ -439,7 +522,7 @@ const CreateRotateTet = (isRight = true) => {
 //操作入力
 //=======
 document.onkeydown = (e) => {
-    if (isGameOver) return;
+    if (!isGameStart || isGameOver || isGameClear) return;
     switch (e.key) {
         case "ArrowLeft": //左
         case "a":
@@ -488,13 +571,12 @@ document.onkeydown = (e) => {
                 PlaySE(ENUM_SE_TYPE.MOVE);
             }
             break;
-        case "Shift":
+        case "Shift"://ホールド
             HoldTet();
             break;
-    }
-    if (!isPlayBGM) {
-        isPlayBGM = true;
-        PlayBGM();
+        case "Enter":// ゲームスタート
+            if (!isGameStart) GameStart();
+            break;
     }
     Draw();
 };
@@ -546,9 +628,28 @@ const ClearLine = () => {
         }
     }
 
+    //消した列数に応じて、スコア加算
     if (clearLinenum != 0) {
         PlaySE(ENUM_SE_TYPE.LINECLEAR); // SEならす
-        AddScore(5 * (10 ** clearLinenum)); //スコア追加
+
+        //AddScore(5 * (10 ** clearLinenum)); //スコア追加(適当に増やす)
+        switch (clearLinenum) {
+            case 1:
+                AddScore(5000); //スコア追加
+                break;
+            case 2:
+                AddScore(25000); //スコア追加
+                break;
+            case 3:
+                AddScore(50000); //スコア追加
+                break;
+            case 4:
+                AddScore(100000); //スコア追加
+                break;
+
+            default:
+                break;
+        }
     }
 };
 
@@ -556,7 +657,7 @@ const ClearLine = () => {
 //繰り返し行われる落下処理
 //=====================
 const DropTet = () => {
-    if (isGameOver) return;
+    if (!isGameStart || isGameOver || isGameClear) return;
     //下に行けたら
     if (CanMove(0, 1)) {
         //下に行く
@@ -567,11 +668,17 @@ const DropTet = () => {
         SetNextTet(); //次のテトセット
         InitStartPos(); //初期位置に戻す
         TimerReset(); //落下時間リセット
-        DrawNextTets(); //ネクスト描画
 
         //次のテトを出せなかったらGameOver
         if (!CanMove(0, 0)) {
             isGameOver = true;
+            clearInterval(timerId);
+            timerId = NaN;
+        }
+
+        //スコアがカンストしたらゲームクリア
+        if (score >= scoremax) {
+            isGameClear = true;
             clearInterval(timerId);
             timerId = NaN;
         }
@@ -598,6 +705,9 @@ const AddTet = () => {
     }
 
     let tets = [1, 2, 3, 4, 5, 6, 7];
+    for (i = 1; i >= tet_boxnum; i++) {
+        tets[i] = i;
+    }
 
     let length = tets.length;
     for (let i = length - 1; i > 0; i--) {
@@ -611,6 +721,24 @@ const AddTet = () => {
         tet_list.push([element, tetTypes[element]]);
     });
 
+    //3分の1の確率で新テト追加
+    if (GetRandomNum(2) == 0) {
+        switch (GetRandomNum(2)) {
+            case 0:
+                tet_list.push([8, tetTypes[8]]);
+                break;
+            case 1:
+                tet_list.push([9, tetTypes[9]]);
+                break;
+            case 2:
+                tet_list.push([10, tetTypes[10]]);
+                break;
+
+            default:
+                break;
+        }
+    }
+
     //データが１パック分以下なら、新しいテトを追加する
     if (tet_list.length <= tet_boxnum) {
         AddTet();
@@ -619,6 +747,14 @@ const AddTet = () => {
     //データ確認用
     //$('test').text();
 }
+
+//===========================
+//0からnまでのランダムな整数生成
+//===========================
+const GetRandomNum = (n) => {
+    return Math.floor(Math.random() * (n + 1));
+}
+
 
 //====================
 //次に落ちてくるテトセット
@@ -633,6 +769,8 @@ const SetNextTet = () => {
 
     // 次に落ちてくるテト追加
     AddTet();
+
+    DrawNextTets(); //ネクスト描画
 }
 
 //======================
@@ -739,6 +877,7 @@ const TimerReset = () => {
 //落下予測表示
 //====================
 const DrowTetDorpDownPos = () => {
+    if (!isGameStart || isGameOver || isGameClear) return;
 
     //どこまで落下できるか調べる
     let move_y = 1;

@@ -721,22 +721,20 @@ const AddTet = () => {
         tet_list.push([element, tetTypes[element]]);
     });
 
-    //3分の1の確率で新テト追加
-    if (GetRandomNum(2) == 0) {
-        switch (GetRandomNum(2)) {
-            case 0:
-                tet_list.push([8, tetTypes[8]]);
-                break;
-            case 1:
-                tet_list.push([9, tetTypes[9]]);
-                break;
-            case 2:
-                tet_list.push([10, tetTypes[10]]);
-                break;
+    //新テト追加
+    switch (GetRandomNum(2)) {
+        case 0:
+            tet_list.push([8, tetTypes[8]]);
+            break;
+        case 1:
+            tet_list.push([9, tetTypes[9]]);
+            break;
+        case 2:
+            tet_list.push([10, tetTypes[10]]);
+            break;
 
-            default:
-                break;
-        }
+        default:
+            break;
     }
 
     //データが１パック分以下なら、新しいテトを追加する
